@@ -6,7 +6,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/systemone";   // https://op
 const GATEWAY_URL = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model";
 const SYSTEMONE_PATH = "/v1/systemone";
 const DEFAULT_MODEL = { custom: "jev-latest", typesafe: "jev-latest", openrouter: "jev-1.13", gateway: "typesafe-ai/jev" };
-const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "172.17.0.1", "[::1]"]);
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -48,6 +48,7 @@ export function readConfig(env = process.env) {
 
 /** @returns {Promise<Record<string, {p?: number, choice?: string, score?: number, probabilities?: Record<string, number>, confidence?: number}>>} */
 export async function ask(state, questions, { env = process.env, fetchImpl = fetch, signal, timeoutMs } = {}) {
+  console.error("[jev-guard ask] state:", state)
   const b = backend(env);
   if (!b) throw new Error("no credentials: run `jev-guard key <key>` or set JEV_API_KEY / OPENROUTER_API_KEY / AI_GATEWAY_API_KEY / JEV_BASE_URL");
   const gw = b.kind === "gateway";

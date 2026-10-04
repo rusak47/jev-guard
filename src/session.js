@@ -19,15 +19,25 @@ export function readSession(id) {
   try { return { ...EMPTY(), ...JSON.parse(readFileSync(sessionFile(id), "utf8")) }; } catch { return EMPTY(); }
 }
 
-/** Append `item` to one of the lists; oldest entries fall off. No-op without a session id. */
+/** Append `item` to one of the lists; oldest entries fall off. No-op without a session id.
+    Returns true if a new row was added, false if an existing row was updated. */
 export function remember(id, key, item) {
-  if (!id || !item) return;
+  if (!id || !item) return false;
   const s = readSession(id);
-  s[key] = [...s[key], { ...item, at: Date.now() }].slice(-CAPS[key]);
+  const list = s[key];
+  const field = "callID";
+  const i = field && item[field] != null ? list.findIndex((e) => e[field] === item[field]) : -1;
+  const isNew = i < 0;
+
+  if (isNew) list.push({ ...item, at: Date.now() });
+  else list[i] = { ...list[i], ...item, at: list[i].at, updated: Date.now() }; // keep original position and `at`
+
+  s[key] = list.slice(-CAPS[key]);
   s.updated = Date.now();
   mkdirSync(DIR(), { recursive: true, mode: 0o700 });
   writeFileSync(sessionFile(id), JSON.stringify(s), { mode: 0o600 });
   prune();
+  return isNew;
 }
 
 /** Shallow-merge fields (e.g. {swept: true}) into the session record. */
